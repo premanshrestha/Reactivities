@@ -1,5 +1,5 @@
 
-import { makeAutoObservable, runInAction } from "mobx";
+import {makeAutoObservable, runInAction } from "mobx";
 import agent from "../api/agent";
 import { Activity } from "../models/activity";
 
@@ -14,20 +14,34 @@ loadingInitial = true;
 constructor (){
 makeAutoObservable(this)
 }
-get activitiesByDate(){
+get activitiesByDate()
+{
     return Array.from(this.activityRegistry.values()).sort((a,b) =>
     Date.parse(a.date) - Date.parse(b.date));
 }
+get groupActivities(){
+    return Object.entries (
+        this.activitiesByDate.reduce((activities, activity)=>
+    {
+        const date = activity.date;
+        activities[date] =activities[date] ?[...activities[date],activity] :[activity];
+        return activities;
+    },{} as {[keys: string]:Activity[]})
+    )
+}
 loadActivities = async () =>{
     this.loadingInitial = true;
-    try{
+    try
+    {
     const activities = await agent.Activities.list();
         activities.forEach(activity => {
             this.setActivity(activity);  
 
     })
     this.setIntialLoading(false);
-    }catch(error){
+    }
+    catch(error)
+    {
         console.log(error);
             this.setIntialLoading(false);
       
