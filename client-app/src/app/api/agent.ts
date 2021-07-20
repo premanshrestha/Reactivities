@@ -1,11 +1,22 @@
 import axios, { AxiosError, AxiosResponse } from 'axios';
+//import { config } from 'process';
 
 import { toast } from 'react-toastify';
 
-import { histroy } from '../..';
+import { history } from '../..';
 import { Activity } from '../models/activity';
+import { User, UserFormValues } from '../models/user';
 import { store } from '../stores/store';
 axios.defaults.baseURL = 'http://localhost:5000/api';
+
+//For Token  at first after login
+axios.interceptors.request.use(config => {
+    const token= store.commonStore.token;
+    if(token) config.headers.Authorization =`Bearer ${token}`
+    return config;
+});
+
+
 
 const sleep =(delay:number) =>{
     return new Promise ((resolve)=>{
@@ -24,7 +35,7 @@ axios.interceptors.response.use (async response=>{
                 toast.error(data)
             }
             if(config.method==='get' && data.errors.hasOwnProperty('id')){
-                histroy.push('/not-found');
+                history.push('/not-found');
             }
             if(data.errors)
             {
@@ -44,11 +55,11 @@ axios.interceptors.response.use (async response=>{
             toast.error('unauthorised');
             break;
             case 404:
-        histroy.push('/not-found')
+        history.push('/not-found')
             break;
             case 500:
             store.commonStore.setServerError(data);
-            histroy.push('/server-error')
+            history.push('/server-error')
             break;
             
     }
@@ -58,9 +69,9 @@ axios.interceptors.response.use (async response=>{
 const responseBody = <T> (response: AxiosResponse <T>) => response.data;
 const requests ={
     get:<T>(url:string) => axios.get<T>(url).then(responseBody),
-    post:<T>(url:string,body:{}) => axios.get<T>(url).then(responseBody),
-    put:<T>(url:string, body:{}) => axios.get<T>(url).then(responseBody),
-    del:<T>(url:string) => axios.get<T>(url).then(responseBody),
+    post:<T>(url:string,body:{}) => axios.post<T>(url,body).then(responseBody),
+    put:<T>(url:string, body:{}) => axios.put<T>(url,body).then(responseBody),
+    del:<T>(url:string) => axios.delete<T>(url).then(responseBody),
 }
 const Activities = {
     list:() => requests.get<Activity[]>('/activities'),
@@ -69,7 +80,13 @@ const Activities = {
     update:(activity: Activity) => axios.put<void>(`/activities/${activity.id}`,activity),
     delete:(id: string ) => axios.delete<void>(`/activities/${id}`)
 }
+const Account ={
+    current: () => requests.get<User>('/account'),
+    login:(user:UserFormValues) => requests.post<User>('/account/login',user),
+    register:(user:UserFormValues) => requests.post<User>('/account/register',user)
+}
 const agent ={
-    Activities
+    Activities,
+    Account
 }
 export default agent;
