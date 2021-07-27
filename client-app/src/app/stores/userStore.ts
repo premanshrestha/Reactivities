@@ -48,13 +48,12 @@ export default class UserStore
             runInAction(()=>this.user = user);
             history.push('/activities');
             store.modalStore.closeModal();
-            
-            
         }
         catch(error){
             throw error;
         }
-
-
+    }
+    setImage = (image: string) => {
+        if(this.user) this.user.image=image;
     }
 }
