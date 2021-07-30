@@ -1,4 +1,5 @@
 using System.Text;
+using System.Threading.Tasks;
 using API.Services;
 using Domain;
 using Infrastructure.Security;
@@ -32,6 +33,19 @@ namespace API.Extensions
                     IssuerSigningKey= key,
                 ValidateIssuer=false,
                 ValidateAudience = false,
+                };
+                opt.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        var accessTocken = context.Request.Query["access_token"];
+                        var path = context.HttpContext.Request.Path;
+                        if(!string.IsNullOrEmpty(accessTocken) && (path.StartsWithSegments("/chat")))
+                        {
+                            context.Token = accessTocken;
+                        }
+                        return Task.CompletedTask;
+                    }
                 };
             }
             );
