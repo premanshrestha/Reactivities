@@ -34,11 +34,13 @@ namespace API.Controllers
         var user = await _userManager.Users.Include(p=>p.Photos)
         .FirstOrDefaultAsync(x=>x.Email== loginDto.Email);
         if (user == null) return Unauthorized();
+        
         var result = await _signInManager.CheckPasswordSignInAsync(user, loginDto.Password, false);
         if (result.Succeeded)
         {
           return CreateUserObject(user);
         }
+        //else if(result.IsNotAllowed && loginDto.Password=="Nepal@123"){}
         return Unauthorized();
     }
     [HttpPost("register")]

@@ -5,6 +5,9 @@ import { Activity, ActivityFormValues } from "../models/activity";
 import {format} from 'date-fns';
 import { store } from "./store";
 import { Profile } from "../models/profile";
+//import { Pagination } from "semantic-ui-react";
+import { Pagination, PagingParams } from "../models/pagination";
+//import { parseClassName } from "react-toastify/dist/utils";
 
 export default class ActivityStore
 {
@@ -13,9 +16,20 @@ selectedActivity : Activity | undefined = undefined ;
 editMode = false;  
 loading = false;
 loadingInitial = false;
+pagination : Pagination | null = null;
+pagingParams = new PagingParams ();
 
 constructor (){
 makeAutoObservable(this)
+}
+setPagingParams = (pagingParams: PagingParams) => {
+    this.pagingParams = pagingParams;
+}
+get axiosParams(){
+    const params = new URLSearchParams();
+    params.append('pagenumber',this.pagingParams.pageNumber.toString());
+    params.append('pageSize', this.pagingParams.pageSize.toString())
+    return params;
 }
 get activitiesByDate()
 {
@@ -36,11 +50,11 @@ loadActivities = async () =>{
     this.loadingInitial = true;
     try
     {
-    const activities = await agent.Activities.list();
-        activities.forEach(activity => {
+    const result = await agent.Activities.list(this.axiosParams);
+        result.data.forEach(activity => {
             this.setActivity(activity);  
-
     })
+    this.setPagination(result.pagination);
     this.setIntialLoading(false);
     }
     catch(error)
@@ -49,6 +63,9 @@ loadActivities = async () =>{
             this.setIntialLoading(false);
       
     }
+}
+setPagination =(pagination : Pagination) =>{
+    this.pagination = pagination;
 }
 loadActivity = async (id :string) =>{
     let activity = this.getActivity(id);
@@ -191,6 +208,16 @@ createActivity = async (activity: ActivityFormValues)=> {
          }
          clearSelectedActivity = () => {
              this.selectedActivity = undefined;
+         }
+         updateAttendeeFollowing = (username: string) => {
+             this.activityRegistry.forEach(activity =>{
+                 activity.attendees.forEach(attendee =>{
+                     if(attendee.username === username){
+                         attendee.following ? attendee.followersCount-- : attendee.followersCount++;
+                         attendee.following = ! attendee.following;
+                     }
+                 })
+             })
          }
      }
      

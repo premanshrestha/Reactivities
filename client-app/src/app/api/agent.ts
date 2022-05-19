@@ -1,16 +1,14 @@
 import axios, { AxiosError, AxiosResponse } from 'axios';
-//import { request } from 'http';
-
-//import { config } from 'process';
 
 import { toast } from 'react-toastify';
 
 import { history } from '../..';
 import { Activity, ActivityFormValues } from '../models/activity';
+import { PaginatedResult } from '../models/pagination';
 import { Profile } from '../models/profile';
 import { User, UserFormValues } from '../models/user';
 import { store } from '../stores/store';
-axios.defaults.baseURL = 'http://localhost:5000/api';
+axios.defaults.baseURL = process.env.REACT_APP_API_URL;
 
 //For Token  at first after login
 axios.interceptors.request.use(config => {
@@ -27,7 +25,14 @@ const sleep =(delay:number) =>{
     })
 } 
 axios.interceptors.response.use (async response=>{
+    if(process.env.NODE_ENV==='development') await sleep(1000);
         await sleep(1000);
+        const pagination = response.headers['pagination'];
+        if(pagination)
+        {
+            response.data = new PaginatedResult (response.data, JSON.parse(pagination));
+            return response as AxiosResponse<PaginatedResult<any>>
+        }
         return response;
 
 },(error : AxiosError)=> {
@@ -77,7 +82,9 @@ const requests ={
     del:<T>(url:string) => axios.delete<T>(url).then(responseBody),
 }
 const Activities = {
-    list:() => requests.get<Activity[]>('/activities'),
+    list:(params:URLSearchParams) => axios.get<PaginatedResult<Activity[]>>
+    ('/activities',{params})
+    .then(responseBody),
     details:(id: string ) => requests.get<Activity>(`/activities/${id}`),
     create:(activity: ActivityFormValues) => requests.post<void>('/activities',activity),
     update:(activity: ActivityFormValues) => requests.put<void>(`/activities/${activity.id}`,activity),
@@ -99,7 +106,11 @@ const Profiles ={
         })
     },
     setMainPhoto: (id: string ) => requests.post(`/photos/${id}/setMain`,{}),
-    deletePhoto: (id: string) => requests.del(`/photos/${id}`)
+    deletePhoto: (id: string) => requests.del(`/photos/${id}`),
+    updateProfile:(profile: Partial<Profile>) => requests.put(`/profiles`,profile),
+    updateFollowing:(username : string) => requests.post(`/follow/${username}`,{}),
+    listFollowing : (username: string, predicate: string) => 
+        requests.get<Profile[]>(`/follow/${username}?predicate=${predicate}`)
 
 }
 const agent ={
